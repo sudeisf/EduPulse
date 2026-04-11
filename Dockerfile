@@ -1,14 +1,15 @@
-# Use a lightweight Python image
-FROM python:3.9-slim
+# Use a lightweight Python image pinned to Debian bookworm
+# so OpenJDK 17 package names are available.
+FROM python:3.9-slim-bookworm
 
-# Install Java (Required for Spark) and procps (for Spark monitoring)
+# Install Java 17 (compatible with Spark 3.4.x) and procps (for Spark monitoring)
 RUN apt-get update && apt-get install -y \
-    default-jdk-headless \
+    openjdk-17-jdk-headless \
     procps \
     && apt-get clean
 
-# Set Environment Variables for Spark
-ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+# Set environment variables for Spark.
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV SPARK_HOME=/usr/local/lib/python3.9/site-packages/pyspark
 ENV PATH=$PATH:$JAVA_HOME/bin
 
