@@ -1,41 +1,28 @@
-EduPulse: Big Data Student Performance Intelligence System
+# EduPulse: Big Data Student Performance Intelligence System
 
 EduPulse is a distributed data pipeline and predictive engine designed to analyze massive volumes of academic and behavioral data. By processing millions of student interactions—including grades, attendance, and Virtual Learning Environment (VLE) activity—the system identifies hidden patterns that correlate with academic success.
 
-Key Features
+## Key Features
 
-High-Volume Data Ingestion: PySpark-based pipeline capable of processing million-row interaction logs.
+*   **High-Volume Data Ingestion:** PySpark-based pipeline capable of processing million-row interaction logs.
+*   **Engagement Indexing:** An algorithmic score that converts raw clickstream data and login frequency into a numerical effort metric.
+*   **Automated Data Cleaning:** Distributed handling of missing values and normalization of disparate grading scales using Spark.
+*   **At-Risk Classification:** A machine learning binary classifier designed to flag students with a high probability of failing or dropping out.
+*   **Early Warning Dashboard:** A Streamlit-based visual portal for educators to identify at-risk students in real-time.
+*   **Resource Optimization:** Efficient use of Apache Parquet storage and Spark’s lazy evaluation to minimize hardware strain on local machines.
 
-Engagement Indexing: An algorithmic score that converts raw clickstream data and login frequency into a numerical effort metric.
+## Tech Stack
 
-Automated Data Cleaning: Distributed handling of missing values and normalization of disparate grading scales using Spark.
+*   **Core Engine:** Apache Spark (PySpark)
+*   **Environment:** Docker & Docker Compose
+*   **Dashboard:** Streamlit
+*   **Data Format:** Apache Parquet (Columnar storage)
+*   **Language:** Python 3.9+
+*   **Visuals:** Plotly / Matplotlib
 
-At-Risk Classification: A machine learning binary classifier designed to flag students with a high probability of failing or dropping out.
+## Project Structure
 
-Early Warning Dashboard: A Streamlit-based visual portal for educators to identify at-risk students in real-time.
-
-Resource Optimization: Efficient use of Apache Parquet storage and Spark’s lazy evaluation to minimize hardware strain on local machines.
-
-Tech Stack
-
-Core Engine: Apache Spark (PySpark)
-
-Environment: Docker & Docker Compose
-
-Dashboard: Streamlit
-
-Data Format: Apache Parquet (Columnar storage)
-
-Language: Python 3.9+
-
-Visuals: Plotly / Matplotlib
-
-Project Structure
-code
-Text
-download
-content_copy
-expand_less
+```text
 edupulse/
 ├── data/               
 │   ├── raw/            # Place raw CSVs here
@@ -49,55 +36,47 @@ edupulse/
 ├── docker-compose.yml  # Container orchestration
 ├── requirements.txt    # Python dependencies
 └── README.md
-Installation and Setup
-1. Prerequisites
+```
 
-Install Docker Desktop
+## Installation and Setup
 
-Place raw dataset CSV files inside the data/raw/ directory.
+### 1. Prerequisites
+*   Install Docker Desktop
+*   Place raw dataset CSV files inside the data/raw/ directory.
 
-2. Build the Environment
-
+### 2. Build the Environment
 Clone the repository and build the container:
-
-code
-Bash
-download
-content_copy
-expand_less
+```bash
 git clone https://github.com/YOUR_USERNAME/EduPulse.git
 cd EduPulse
 docker-compose up --build
-3. Run the Data Pipeline
+```
 
+### 3. Run the Data Pipeline
 Execute the Spark jobs inside the running container to process the data:
 
-code
-Bash
-download
-content_copy
-expand_less
+```bash
 # Step 1: Ingest raw CSVs and convert to Parquet
 docker-compose exec edupulse-app python src/ingestion.py
 
 # Step 2: Calculate Engagement Index
 docker-compose exec edupulse-app python src/engagement.py
-4. Access the Dashboard
+```
 
+### 4. Access the Dashboard
 Once the data is processed, open your browser and go to:
-http://localhost:8501
+**http://localhost:8501**
 
-Performance Optimization
+---
 
+## Performance Optimization
 To ensure the system runs smoothly on local hardware, the following optimizations are implemented:
 
-Parquet Storage: Columnar data format significantly reduces disk I/O and storage footprint compared to CSV.
+1.  **Parquet Storage:** Columnar data format significantly reduces disk I/O and storage footprint compared to CSV.
+2.  **Memory Management:** Spark memory limits are explicitly configured in the driver to prevent system freezes.
+3.  **Lazy Evaluation:** Operations are only executed when necessary, optimizing the CPU workflow for large-scale joins.
+4.  **UI Caching:** Streamlit's caching mechanisms are used to store processed dataframes in memory, ensuring the dashboard remains responsive.
 
-Memory Management: Spark memory limits are explicitly configured in the driver to prevent system freezes.
-
-Lazy Evaluation: Operations are only executed when necessary, optimizing the CPU workflow for large-scale joins.
-
-UI Caching: Streamlit's caching mechanisms are used to store processed dataframes in memory, ensuring the dashboard remains responsive.
-
-Author: [Your Name]
-Project Status: Active Development
+---
+**Author:** [Your Name]
+**Project Status:** Active Development
