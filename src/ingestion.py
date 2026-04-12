@@ -13,7 +13,11 @@ def ingest_raw_data():
     processed_path = "data/processed/"
 
   
-    files = ["studentVle.csv", "studentInfo.csv", "vle.csv"]
+    files = ["studentVle.csv",
+             "studentInfo.csv",
+             "vle.csv",
+             "studentAssessment.csv",
+             "assessments.csv" ]
 
     for file in files:
         print(f"--- Processing {file} ---")
