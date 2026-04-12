@@ -6,6 +6,9 @@ st.title("EduPulse: Big Data Intelligence")
 spark = SparkSession.builder \
     .appName("EduPulseLocal") \
     .getOrCreate()
+
+# Reduce Spark log noise in container output.
+spark.sparkContext.setLogLevel("ERROR")
     
 st.write("Spark Session Active!")
 st.write(f"Spark Version: {spark.version}")
