@@ -41,13 +41,27 @@ def load_dashboard_data():
 
 @st.cache_data
 def load_gpa_predictions():
-    # Load GPA Predictions (Regression)
+    # Load GPA Predictions (Regression) with robust id normalization.
     path_gpa = "data/processed/gpa_predictions.parquet"
-    if os.path.exists(path_gpa):
+
+    if not os.path.exists(path_gpa):
+        return None
+
+    try:
         df = spark.read.parquet(path_gpa).toPandas()
-        df['id_student'] = df['id_student'].astype(str) # Force to string
-        return df
-    return None
+    except Exception:
+        return None
+
+    if "id_student" not in df.columns:
+        return None
+
+    # Convert values like 11391.0 -> 11391 while keeping all IDs as strings.
+    numeric_ids = pd.to_numeric(df["id_student"], errors="coerce")
+    int_like_mask = numeric_ids.notna() & (numeric_ids % 1 == 0)
+
+    df["id_student"] = df["id_student"].astype(str).str.strip()
+    df.loc[int_like_mask, "id_student"] = numeric_ids[int_like_mask].astype("int64").astype(str)
+    return df
 
 @st.cache_data
 def load_analytics_data():
@@ -103,7 +117,16 @@ elif page == "Student Search":
     st.title("Student Intelligence Lookup")
     st.markdown("Enter a student ID to retrieve cross-model analysis (Classification and Regression).")
 
-    search_id = st.text_input("Enter Student ID (e.g., 11391):").strip()
+    raw_search_id = st.text_input("Enter Student ID (e.g., 11391):").strip()
+
+    def normalize_search_id(value):
+        value_str = str(value).strip()
+        value_num = pd.to_numeric(pd.Series([value_str]), errors="coerce").iloc[0]
+        if pd.notna(value_num) and float(value_num).is_integer():
+            return str(int(value_num))
+        return value_str
+
+    search_id = normalize_search_id(raw_search_id) if raw_search_id else ""
 
     if search_id:
         # Match student in main dataframe
@@ -115,11 +138,16 @@ elif page == "Student Search":
             # GPA Prediction Lookup Logic
             current_gpa_val = "N/A"
             numeric_gpa = None
-            if df_gpa is not None:
+            gpa_lookup_status = None
+            if df_gpa is not None and not df_gpa.empty and "id_student" in df_gpa.columns:
                 gpa_match = df_gpa[df_gpa['id_student'] == search_id]
                 if not gpa_match.empty:
                     numeric_gpa = float(gpa_match.iloc[0]['predicted_gpa'])
                     current_gpa_val = f"{numeric_gpa:.2f}%"
+                else:
+                    gpa_lookup_status = "missing_for_student"
+            elif df_gpa is None:
+                st.info("GPA prediction data is not available yet. Run src/regression.py to generate it.")
 
             st.markdown(f"### Results for Student ID: {search_id}")
             
@@ -144,6 +172,8 @@ elif page == "Student Search":
                     st.warning(f"Borderline: Predicted Grade ({current_gpa_val}) requires academic support.")
                 else:
                     st.success(f"Excellent: Predicted Grade ({current_gpa_val}) indicates high performance.")
+            elif gpa_lookup_status == "missing_for_student":
+                st.info("No GPA prediction exists for this student in gpa_predictions.parquet (likely no assessment history for model training).")
 
             st.markdown("---")
             
