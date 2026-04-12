@@ -52,3 +52,32 @@ if search_id:
         st.warning("Student ID not found.")
 else:
     st.write(df_engagement.head(10))
+    
+@st.cache_data
+def load_predictions():
+    # Load the ML results
+    pred_df = spark.read.parquet("data/processed/predictions.parquet")
+    return pred_df.toPandas()
+
+df_preds = load_predictions()
+
+# Merge predictions with engagement for a complete view
+df_final = pd.merge(df_engagement, df_preds, on="id_student")
+
+# New Section: High Risk Alerts
+st.subheader("⚠️ High-Risk Students (Priority Intervention)")
+high_risk = df_final[df_final['risk_probability'] > 0.7].sort_values(by='risk_probability', ascending=False)
+
+if not high_risk.empty:
+    st.dataframe(high_risk[['id_student', 'engagement_index', 'risk_probability']].head(10))
+else:
+    st.success("No high-risk students detected at this threshold.")
+
+# Update the Search Logic to show risk
+if search_id:
+    student_data = df_final[df_final['id_student'].astype(str) == search_id]
+    if not student_data.empty:
+        risk_val = student_data.iloc[0]['risk_probability']
+        st.write(student_data)
+        st.progress(float(risk_val))
+        st.write(f"Predicted Risk Level: {risk_val*100:.1f}%")
