@@ -4,8 +4,10 @@ from pyspark.sql import SparkSession
 st.title("EduPulse: Big Data Intelligence")
 
 spark = SparkSession.builder \
-    .appName("EduPulseLocal") \
-    .getOrCreate()
+     .config("spark.driver.memory", "2g") \
+        .config("spark.executor.memory", "2g") \
+        .config("spark.sql.shuffle.partitions", "10") \
+        .getOrCreate()
 
 # Reduce Spark log noise in container output.
 spark.sparkContext.setLogLevel("ERROR")
