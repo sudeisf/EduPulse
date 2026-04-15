@@ -108,9 +108,30 @@ if page == "Executive Overview":
         fig = px.histogram(df_main, x="engagement_index", nbins=30, color_discrete_sequence=['#4A90E2'])
         st.plotly_chart(fig, use_container_width=True)
     with c_right:
-        st.subheader("Top High-Risk Students")
-        top_risk = df_main.sort_values(by="risk_probability", ascending=False).head(10)
-        st.dataframe(top_risk[['id_student', 'engagement_index', 'risk_probability']])
+        st.subheader("Student Risk Snapshot")
+        threshold_col1, threshold_col2 = st.columns(2)
+        with threshold_col1:
+            high_risk_threshold = st.slider("High-risk threshold", 0.50, 0.95, 0.70, 0.05)
+        with threshold_col2:
+            low_risk_threshold = st.slider("Low-risk threshold", 0.05, 0.50, 0.30, 0.05)
+
+        student_count = st.slider("Students per group", 3, 20, 8, 1)
+
+        high_risk_students = df_main[df_main['risk_probability'] >= high_risk_threshold] \
+            .sort_values(by="risk_probability", ascending=False) \
+            .head(student_count)
+
+        low_risk_students = df_main[df_main['risk_probability'] <= low_risk_threshold] \
+            .sort_values(by="risk_probability", ascending=True) \
+            .head(student_count)
+
+        high_col, low_col = st.columns(2)
+        with high_col:
+            st.caption("Highest risk")
+            st.dataframe(high_risk_students[['id_student', 'engagement_index', 'risk_probability']], use_container_width=True)
+        with low_col:
+            st.caption("Lowest risk")
+            st.dataframe(low_risk_students[['id_student', 'engagement_index', 'risk_probability']], use_container_width=True)
 
 # --- PAGE 2: STUDENT SEARCH ---
 elif page == "Student Search":
