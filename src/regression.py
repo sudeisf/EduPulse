@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, sum as _sum
+from pyspark.sql.functions import col, sum as _sum, when, lit
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.regression import LinearRegression
 from pyspark.ml.evaluation import RegressionEvaluator
@@ -58,15 +58,36 @@ def train_gpa_predictor():
     lr_model = lr.fit(train_data)
 
     # 6. Generate Predictions
-    predictions = lr_model.transform(test_data)
-    
+    # Evaluate on holdout data, but save predictions for all students so dashboard lookup works broadly.
+    test_predictions = lr_model.transform(test_data)
+    all_predictions = lr_model.transform(ml_ready_data)
+
+    # Bound GPA to a valid percent range and keep metadata for UI explanations.
+    bounded_predictions = all_predictions.withColumn(
+        "predicted_gpa_raw",
+        col("prediction")
+    ).withColumn(
+        "predicted_gpa",
+        when(col("prediction") < 0, lit(0.0))
+        .when(col("prediction") > 100, lit(100.0))
+        .otherwise(col("prediction"))
+    ).withColumn(
+        "gpa_bounds_note",
+        when(col("prediction") < 0, lit("capped_to_0"))
+        .when(col("prediction") > 100, lit("capped_to_100"))
+        .otherwise(lit("within_range"))
+    )
+
     # Select relevant columns and save
-    result_df = predictions.select("id_student", col("prediction").alias("predicted_gpa"))
+    result_df = bounded_predictions.select("id_student", "predicted_gpa", "predicted_gpa_raw", "gpa_bounds_note")
     result_df.write.mode("overwrite").parquet("data/processed/gpa_predictions.parquet")
+
+    out_of_range_count = result_df.filter(col("gpa_bounds_note") != "within_range").count()
+    print(f"Out-of-range GPA predictions capped: {out_of_range_count}")
     
     # Evaluate
     evaluator = RegressionEvaluator(labelCol="label", predictionCol="prediction", metricName="rmse")
-    rmse = evaluator.evaluate(predictions)
+    rmse = evaluator.evaluate(test_predictions)
     print(f"Root Mean Squared Error (RMSE) on test data: {rmse:.2f}")
 
 if __name__ == "__main__":

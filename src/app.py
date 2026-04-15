@@ -61,6 +61,11 @@ def load_gpa_predictions():
 
     df["id_student"] = df["id_student"].astype(str).str.strip()
     df.loc[int_like_mask, "id_student"] = numeric_ids[int_like_mask].astype("int64").astype(str)
+
+    if "predicted_gpa" in df.columns:
+        df["predicted_gpa"] = pd.to_numeric(df["predicted_gpa"], errors="coerce")
+    if "predicted_gpa_raw" in df.columns:
+        df["predicted_gpa_raw"] = pd.to_numeric(df["predicted_gpa_raw"], errors="coerce")
     return df
 
 @st.cache_data
@@ -78,6 +83,22 @@ def load_analytics_data():
 df_main = load_dashboard_data()
 df_gpa = load_gpa_predictions()
 df_region, df_edu = load_analytics_data()
+
+
+def build_good_history_view(main_df, gpa_df, max_risk, min_gpa, min_days_active):
+    if gpa_df is None or gpa_df.empty:
+        return pd.DataFrame()
+
+    merged_df = pd.merge(main_df, gpa_df[["id_student", "predicted_gpa"]], on="id_student", how="left")
+    merged_df["predicted_gpa"] = pd.to_numeric(merged_df["predicted_gpa"], errors="coerce")
+
+    good_history_df = merged_df[
+        (merged_df["risk_probability"] <= max_risk)
+        & (merged_df["predicted_gpa"] >= min_gpa)
+        & (merged_df["days_active"] >= min_days_active)
+    ].sort_values(by=["risk_probability", "predicted_gpa"], ascending=[True, False])
+
+    return good_history_df
 
 # Sidebar Navigation
 st.sidebar.title("EduPulse Navigation")
@@ -133,6 +154,48 @@ if page == "Executive Overview":
             st.caption("Lowest risk")
             st.dataframe(low_risk_students[['id_student', 'engagement_index', 'risk_probability']], use_container_width=True)
 
+    st.markdown("---")
+    st.subheader("Good History Students")
+    st.caption("Low risk + strong predicted GPA + active participation")
+    st.caption("Predicted GPA is bounded to 0-100% for display consistency.")
+
+    if df_gpa is None or df_gpa.empty:
+        st.info("GPA prediction data is required for this filter. Run src/regression.py to generate data/processed/gpa_predictions.parquet.")
+    else:
+        if "good_max_risk" not in st.session_state:
+            st.session_state["good_max_risk"] = 0.30
+        if "good_min_gpa" not in st.session_state:
+            st.session_state["good_min_gpa"] = 70
+        if "good_min_days" not in st.session_state:
+            st.session_state["good_min_days"] = 5
+
+        if st.button("Use Excellent Students Preset"):
+            st.session_state["good_max_risk"] = 0.20
+            st.session_state["good_min_gpa"] = 75
+            st.session_state["good_min_days"] = 7
+
+        f1, f2, f3 = st.columns(3)
+        with f1:
+            good_max_risk = st.slider("Max risk probability", 0.05, 0.50, step=0.05, key="good_max_risk")
+        with f2:
+            good_min_gpa = st.slider("Min predicted GPA (%)", 50, 95, step=1, key="good_min_gpa")
+        with f3:
+            good_min_days = st.slider("Min active days", 1, 30, step=1, key="good_min_days")
+
+        good_history_students = build_good_history_view(
+            df_main,
+            df_gpa,
+            max_risk=good_max_risk,
+            min_gpa=good_min_gpa,
+            min_days_active=good_min_days,
+        )
+
+        st.write(f"Matching students: {len(good_history_students)}")
+        st.dataframe(
+            good_history_students[["id_student", "risk_probability", "predicted_gpa", "engagement_index", "days_active", "total_clicks"]].head(100),
+            use_container_width=True,
+        )
+
 # --- PAGE 2: STUDENT SEARCH ---
 elif page == "Student Search":
     st.title("Student Intelligence Lookup")
@@ -163,8 +226,16 @@ elif page == "Student Search":
             if df_gpa is not None and not df_gpa.empty and "id_student" in df_gpa.columns:
                 gpa_match = df_gpa[df_gpa['id_student'] == search_id]
                 if not gpa_match.empty:
-                    numeric_gpa = float(gpa_match.iloc[0]['predicted_gpa'])
+                    gpa_row = gpa_match.iloc[0]
+                    numeric_gpa = float(gpa_row['predicted_gpa'])
                     current_gpa_val = f"{numeric_gpa:.2f}%"
+
+                    bounds_note = str(gpa_row.get("gpa_bounds_note", "within_range"))
+                    raw_pred = gpa_row.get("predicted_gpa_raw")
+                    if bounds_note == "capped_to_100":
+                        st.info(f"Raw model estimate was {float(raw_pred):.2f}%. Displayed value is capped at 100%.")
+                    elif bounds_note == "capped_to_0":
+                        st.info(f"Raw model estimate was {float(raw_pred):.2f}%. Displayed value is capped at 0%.")
                 else:
                     gpa_lookup_status = "missing_for_student"
             elif df_gpa is None:
