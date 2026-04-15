@@ -117,7 +117,3 @@ Generated outputs are written to `data/processed/`:
 *   `education_stats.parquet`
 *   `region_gpa_stats.parquet`
 *   `education_gpa_stats.parquet`
-
----
-**Author:** [Your Name]
-**Project Status:** Active Development
