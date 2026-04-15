@@ -1,13 +1,14 @@
-from pyspark.sql import SparkSession
 from pyspark.sql.functions import avg, count, col
+from common import create_spark, read_processed_parquet, write_processed_parquet
 
 def generate_demographic_insights():
-    spark = SparkSession.builder.appName("EduPulse-Analytics").getOrCreate()
+    spark = create_spark("EduPulse-Analytics")
 
     # 1. Load Data
-    student_info = spark.read.parquet("data/processed/studentInfo.parquet")
-    predictions = spark.read.parquet("data/processed/predictions.parquet")
-    engagement = spark.read.parquet("data/processed/engagement_features.parquet")
+    student_info = read_processed_parquet(spark, "studentInfo")
+    predictions = read_processed_parquet(spark, "predictions")
+    engagement = read_processed_parquet(spark, "engagement_features")
+    gpa_predictions = read_processed_parquet(spark, "gpa_predictions")
 
     # 2. Multi-table Join
     # Combine demographics, engagement metrics, and risk predictions
@@ -27,9 +28,24 @@ def generate_demographic_insights():
         avg("engagement_index").alias("avg_engagement")
     )
 
-    # 5. Save Aggregated Insights
-    region_stats.write.mode("overwrite").parquet("data/processed/region_stats.parquet")
-    education_stats.write.mode("overwrite").parquet("data/processed/education_stats.parquet")
+    # 5. GPA Trends by Region and Education
+    gpa_base = student_info.join(gpa_predictions, "id_student")
+
+    region_gpa_stats = gpa_base.groupBy("region").agg(
+        avg("predicted_gpa").alias("avg_predicted_gpa"),
+        count("id_student").alias("student_count")
+    )
+
+    education_gpa_stats = gpa_base.groupBy("highest_education").agg(
+        avg("predicted_gpa").alias("avg_predicted_gpa"),
+        count("id_student").alias("student_count")
+    )
+
+    # 6. Save Aggregated Insights
+    write_processed_parquet(region_stats, "region_stats")
+    write_processed_parquet(education_stats, "education_stats")
+    write_processed_parquet(region_gpa_stats, "region_gpa_stats")
+    write_processed_parquet(education_gpa_stats, "education_gpa_stats")
     
     print("Demographic analytics successfully generated.")
 

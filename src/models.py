@@ -1,15 +1,15 @@
-from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, when
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.classification import RandomForestClassifier
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
+from common import create_spark, read_processed_parquet, write_processed_parquet
 
 
 def train_at_risk_model():
-    spark = SparkSession.builder.appName("EduPulse-ML").getOrCreate()
+    spark = create_spark("EduPulse-ML")
     
-    engagement = spark.read.parquet("data/processed/engagement_features.parquet")
-    student_info = spark.read.parquet("data/processed/studentInfo.parquet")
+    engagement = read_processed_parquet(spark, "engagement_features")
+    student_info = read_processed_parquet(spark, "studentInfo")
     
     #  2. Prepare Labels (Target Variable)
     # Define At-Risk (1) as Fail or Withdrawn, Safe (0) as Pass or Distinction
@@ -52,7 +52,7 @@ def train_at_risk_model():
     result_df = all_predictions.withColumn("risk_probability", get_risk_prob("probability")) \
                                .select("id_student", "prediction", "risk_probability")
 
-    result_df.write.mode("overwrite").parquet("data/processed/predictions.parquet")
+    write_processed_parquet(result_df, "predictions")
     print("Predictions saved to data/processed/predictions.parquet")
 
 if __name__ == "__main__":

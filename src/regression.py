@@ -1,18 +1,17 @@
-from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, sum as _sum, when, lit
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.regression import LinearRegression
 from pyspark.ml.evaluation import RegressionEvaluator
+from common import create_spark, read_processed_parquet, write_processed_parquet
 
 def train_gpa_predictor():
-    spark = SparkSession.builder.appName("EduPulse-GPA-Regression").getOrCreate()
-    spark.sparkContext.setLogLevel("ERROR")
+    spark = create_spark("EduPulse-GPA-Regression", log_level="ERROR")
 
     # 1. Load Data
     # We need studentAssessment and assessments to calculate weighted scores
-    student_assessments = spark.read.parquet("data/processed/studentAssessment.parquet")
-    assessments = spark.read.parquet("data/processed/assessments.parquet")
-    engagement = spark.read.parquet("data/processed/engagement_features.parquet")
+    student_assessments = read_processed_parquet(spark, "studentAssessment")
+    assessments = read_processed_parquet(spark, "assessments")
+    engagement = read_processed_parquet(spark, "engagement_features")
 
     # 2. Feature Engineering: Calculate Weighted Scores
     # Joining assessments to get weights for each test
@@ -80,7 +79,7 @@ def train_gpa_predictor():
 
     # Select relevant columns and save
     result_df = bounded_predictions.select("id_student", "predicted_gpa", "predicted_gpa_raw", "gpa_bounds_note")
-    result_df.write.mode("overwrite").parquet("data/processed/gpa_predictions.parquet")
+    write_processed_parquet(result_df, "gpa_predictions")
 
     out_of_range_count = result_df.filter(col("gpa_bounds_note") != "within_range").count()
     print(f"Out-of-range GPA predictions capped: {out_of_range_count}")

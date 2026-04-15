@@ -1,11 +1,11 @@
-from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, count, countDistinct, sum as _sum
+from common import create_spark, read_processed_parquet, write_processed_parquet
 
 def calculate_engagement():
-    spark = SparkSession.builder.appName("EduPulse-Engagement").getOrCreate()
+    spark = create_spark("EduPulse-Engagement")
     
     # Load the optimized Parquet data
-    vle_interactions = spark.read.parquet("data/processed/studentVle.parquet")
+    vle_interactions = read_processed_parquet(spark, "studentVle")
     
     print("Calculating Behavioral Metrics...")
     
@@ -25,7 +25,7 @@ def calculate_engagement():
     )
     
     # Save the features
-    engagement_df.write.mode("overwrite").parquet("data/processed/engagement_features.parquet")
+    write_processed_parquet(engagement_df, "engagement_features")
     print("Engagement Indexing Complete. Preview:")
     engagement_df.show(5)
 
