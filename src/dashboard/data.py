@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 from pyspark.sql import SparkSession
 
-from common import normalize_id_column, processed_path
+from src.core.common import normalize_id_column, processed_path
 
 
 @st.cache_resource

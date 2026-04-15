@@ -1,8 +1,15 @@
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from pyspark.sql.functions import col, when
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.classification import RandomForestClassifier
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
-from common import create_spark, read_processed_parquet, write_processed_parquet
+from src.core.common import create_spark, read_processed_parquet, write_processed_parquet
 
 
 def train_at_risk_model():

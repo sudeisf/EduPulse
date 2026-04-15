@@ -1,11 +1,18 @@
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 import streamlit as st
 
-from dashboard_data import (
+from src.dashboard.data import (
     load_analytics_data, 
     load_dashboard_data, 
     load_gpa_predictions
 )
-from dashboard_views import (
+from src.dashboard.views import (
     render_executive_overview,
     render_institutional_analytics,
     render_student_search,

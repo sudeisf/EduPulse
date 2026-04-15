@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from dashboard_data import build_good_history_view, normalize_search_id
+from src.dashboard.data import build_good_history_view, normalize_search_id
 
 
 def render_prediction_guide(student_row=None, gpa_row=None):

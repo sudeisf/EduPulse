@@ -1,5 +1,12 @@
-from common import create_spark, raw_path, write_processed_parquet
-from cleaning import apply_cleaning
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from src.core.common import create_spark, raw_path, write_processed_parquet
+from src.core.cleaning import apply_cleaning
 
 def ingest_raw_data():
     spark = create_spark(

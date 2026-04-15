@@ -1,5 +1,12 @@
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from pyspark.sql.functions import col, count, countDistinct, sum as _sum
-from common import create_spark, read_processed_parquet, write_processed_parquet
+from src.core.common import create_spark, read_processed_parquet, write_processed_parquet
 
 def calculate_engagement():
     spark = create_spark("EduPulse-Engagement")

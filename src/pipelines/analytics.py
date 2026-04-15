@@ -1,5 +1,12 @@
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 from pyspark.sql.functions import avg, count, col
-from common import create_spark, read_processed_parquet, write_processed_parquet
+from src.core.common import create_spark, read_processed_parquet, write_processed_parquet
 
 def generate_demographic_insights():
     spark = create_spark("EduPulse-Analytics")
